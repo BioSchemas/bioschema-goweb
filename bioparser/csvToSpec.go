@@ -18,9 +18,7 @@ func LoadFile(fp string) (Specification, error) {
 
 	log.Debug("Loading file ", fp)
 
-	re := regexp.MustCompile(`.*\.csv$`)
-	isCsv := re.MatchString(fp)
-	if isCsv {
+	if strings.HasSuffix(fp, ".csv") {
 		f, err := os.Open(fp)
 		if err != nil {
 			log.Panic(err)
@@ -78,7 +76,7 @@ func ParseSpecificationCSV(r *csv.Reader) (Specification, error) {
 
 	if len(csv) <= 1 {
 		log.Error("Empty content, please check the CSV")
-		return specification, err
+		return specification, err //TODO err is nil here it this correct?
 	}
 	log.Debug("CSV lenght ", len(csv))
 
@@ -93,13 +91,13 @@ func ParseSpecificationCSV(r *csv.Reader) (Specification, error) {
 		if i == 1 {
 			log.Debug("Row 1 Specifications Info")
 			specInfo = SpecificationInfo{
-				Title:        strings.Replace(row[0], "\n", "", -1),
-				Subtitle:     strings.Replace(row[1], "\n", "", -1),
-				Description:  strings.Replace(row[2], "\n", "", -1),
-				Version:      strings.Replace(row[3], "\n", "", -1),
+				Title:        strings.TrimSpace(row[0]),
+				Subtitle:     strings.TrimSpace(row[1]),
+				Description:  strings.TrimSpace(row[2]),
+				Version:      strings.TrimSpace(row[3]),
 				VersionDate:  now.Format("20060102T150405"),
-				OfficialType: strings.Replace(row[4], "\n", "", -1),
-				FullExample:  strings.Replace(row[5], "\n", "", -1),
+				OfficialType: strings.TrimSpace(row[4]),
+				FullExample:  strings.TrimSpace(row[5]),
 			}
 		}
 
@@ -108,17 +106,17 @@ func ParseSpecificationCSV(r *csv.Reader) (Specification, error) {
 			continue
 		}
 
-		xtypes := extractExpectedTypes(strings.Replace(row[1], "\n", "", -1))
+		xtypes := extractExpectedTypes(strings.TrimSpace(row[1]))
 		log.Debug("Extracted Expected Types", xtypes)
 		s := SpecificationParam{
-			Property:             strings.Replace(row[0], "\n", "", -1),
+			Property:             strings.TrimSpace(row[0]),
 			ExpectedTypes:        xtypes,
 			Description:          row[2],
-			Type:                 strings.Replace(row[3], "\n", "", -1),
-			TypeURL:              strings.Replace(row[4], "\n", "", -1),
+			Type:                 strings.TrimSpace(row[3]),
+			TypeURL:              strings.TrimSpace(row[4]),
 			BscDescription:       row[5],
-			Marginality:          strings.Replace(row[6], "\n", "", -1),
-			Cardinality:          strings.Replace(row[7], "\n", "", -1),
+			Marginality:          strings.TrimSpace(row[6]),
+			Cardinality:          strings.TrimSpace(row[7]),
 			ControlledVocabulary: row[8],
 			Example:              row[9],
 		}
@@ -129,8 +127,10 @@ func ParseSpecificationCSV(r *csv.Reader) (Specification, error) {
 	return specification, nil
 }
 
+//extractExpectedTypes returns a list of types. The types are in a string
+//usually separated by the word "or" or a comma ",".
 func extractExpectedTypes(s string) []string {
-	re := regexp.MustCompile("[^A-Za-z0-9]*([^A-Za-z0-9]or[^A-Za-z0-9]|,)[^A-Za-z0-9]*")
+	re := regexp.MustCompile("(or|,)")
 	ss := re.Split(s, -1)
 
 	for i, et := range ss {
